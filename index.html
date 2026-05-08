@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>PathForge — Find Your Direction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet"/>
+<style>
+/* ══════════════════════════════════
+   DESIGN TOKENS — DARK (DEFAULT)
+══════════════════════════════════ */
+:root {
+  --bg:#0A0A0A; --surf:#111111; --card:#181818; --card2:#1E1E1E;
+  --border:#242424; --border2:#2E2E2E;
+  --white:#F0EDE6; --muted:#5C5C5C; --muted2:#8A8A7A; --body-txt:#D4D0C8;
+  --gold:#F0C040; --ga:rgba(240,192,64,.12); --gb:rgba(240,192,64,.28);
+  --green:#22C55E; --gra:rgba(34,197,94,.12); --grb:rgba(34,197,94,.28);
+  --blue:#3B82F6; --bla:rgba(59,130,246,.12); --blb:rgba(59,130,246,.28);
+  --purple:#A855F7; --pua:rgba(168,85,247,.12); --pub:rgba(168,85,247,.28);
+  --red:#EF4444; --reda:rgba(239,68,68,.12);
+  --amber:#F59E0B;
+  --shadow:rgba(0,0,0,.5);
+  --toggle-bg:#2A2A2A; --toggle-ic:#F0C040;
+  --fh:'Bricolage Grotesque',sans-serif;
+  --fb:'Plus Jakarta Sans',sans-serif;
+}
+
+/* ══════════════════════════════════
+   LIGHT MODE OVERRIDES
+══════════════════════════════════ */
+[data-theme="light"] {
+  --bg:#F5F2EC; --surf:#EDEAE3; --card:#FFFFFF; --card2:#F0EDE6;
+  --border:#E0DDD6; --border2:#D0CEC8;
+  --white:#1A1814; --muted:#9A9890; --muted2:#6A6860; --body-txt:#3A3830;
+  --gold:#C8960A; --ga:rgba(200,150,10,.1); --gb:rgba(200,150,10,.22);
+  --green:#16A34A; --gra:rgba(22,163,74,.1); --grb:rgba(22,163,74,.22);
+  --blue:#2563EB; --bla:rgba(37,99,235,.1); --blb:rgba(37,99,235,.22);
+  --purple:#9333EA; --pua:rgba(147,51,234,.1); --pub:rgba(147,51,234,.22);
+  --red:#DC2626; --reda:rgba(220,38,38,.1);
+  --shadow:rgba(0,0,0,.12);
+  --toggle-bg:#E8E5DE; --toggle-ic:#C8960A;
+}
+
+/* ══════════════════════════════════
+   RESET + BASE
+══════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:#000;}
+body{font-family:var(--fb);display:flex;justify-content:center;align-items:center;color:var(--body-txt);}
+
+.shell{width:100%;max-width:390px;height:100vh;position:relative;overflow:hidden;
+  background:var(--bg);transition:background .35s ease;}
+
+/* ══════════════════════════════════
+   SCREEN SYSTEM
+══════════════════════════════════ */
+.scr{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
+  transition:transform .44s cubic-bezier(.4,0,.2,1),opacity .44s ease;
+  scrollbar-width:none;}
+.scr::-webkit-scrollbar{display:none;}
+.scr.active{transform:translateX(0);opacity:1;pointer-events:auto;}
+.scr.go-l{transform:translateX(-100%);opacity:0;pointer-events:none;}
+.scr.go-r{transform:translateX(100%);opacity:0;pointer-events:none;}
+.scr.fade-out{opacity:0;transform:translateX(0);pointer-events:none;}
+
+/* ══════════════════════════════════
+   ANIMATIONS
+══════════════════════════════════ */
+@keyframes fu{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes sc{from{transform:scale(.65);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes scan{0%{top:-2px}100%{top:102%}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes barFill{from{width:0}to{width:var(--tw,0%)}}
+@keyframes cardIn{from{opacity:0;transform:translateY(22px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes dotB{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+@keyframes ringDraw{from{stroke-dashoffset:220}to{stroke-dashoffset:var(--target-offset,0)}}
+@keyframes toggleSlide{from{transform:translateX(0)}to{transform:translateX(22px)}}
+
+.a1{opacity:0;animation:fu .5s ease .1s forwards;}
+.a2{opacity:0;animation:fu .5s ease .2s forwards;}
+.a3{opacity:0;animation:fu .5s ease .3s forwards;}
+.a4{opacity:0;animation:fu .5s ease .4s forwards;}
+.a5{opacity:0;animation:fu .5s ease .5s forwards;}
+.a6{opacity:0;animation:fu .5s ease .6s forwards;}
+.a7{opacity:0;animation:fu .5s ease .7s forwards;}
+
+/* ══════════════════════════════════
+   SHARED ATOMS
+══════════════════════════════════ */
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:99px;
+  font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:4px 11px;}
+.chip-gold{background:var(--ga);border:1px solid var(--gb);color:var(--gold);}
+.chip-green{background:var(--gra);border:1px solid var(--grb);color:var(--green);}
+.chip-blue{background:var(--bla);border:1px solid var(--blb);color:var(--blue);}
+.chip-purple{background:var(--pua);border:1px solid var(--pub);color:var(--purple);}
+.chip-red{background:var(--reda);border:1px solid rgba(239,68,68,.25);color:var(--red);}
+
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:17px;border:none;border-radius:14px;
+  font-family:var(--fb);font-size:15px;font-weight:700;cursor:pointer;
+  letter-spacing:-.2px;transition:transform .15s,opacity .2s;
+  position:relative;overflow:hidden;}
+.btn::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.13) 0%,transparent 55%);}
+.btn:active{transform:scale(.97);}
+.btn-gold{background:var(--gold);color:#0A0A0A;}
+.btn-green{background:var(--green);color:#0A0A0A;}
+.btn-outline{background:transparent;border:1.5px solid var(--border2);color:var(--white);}
+.btn-outline::before{display:none;}
+.btn-sm{padding:12px 18px;font-size:14px;border-radius:12px;}
+.btn-disabled{opacity:.32 !important;pointer-events:none !important;}
+
+/* ══════════════════════════════════
+   DARK/LIGHT TOGGLE
+══════════════════════════════════ */
+.theme-toggle{
+  width:48px;height:26px;border-radius:99px;
+  background:var(--toggle-bg);border:1.5px solid var(--border2);
+  position:relative;cursor:pointer;transition:background .3s,border-color .3s;
+  flex-shrink:0;
+}
+.toggle-thumb{
+  position:absolute;top:3px;left:3px;
+  width:18px;height:18px;border-radius:50%;
+  background:var(--toggle-ic);
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1),background .3s;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;line-height:1;
+}
+[data-theme="light"] .toggle-thumb{transform:translateX(22px);}
+
+/* ══════════════════════════════════
+   TOPBAR (shared)
+══════════════════════════════════ */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:52px 22px 0;}
+.logo{display:flex;align-items:center;gap:9px;}
+.logo-gem{width:33px;height:33px;background:var(--gold);border-radius:9px;
+  display:flex;align-items:center;justify-content:center;transition:background .3s;}
+.logo-gem svg{width:17px;height:17px;}
+.logo-name{font-family:var(--fh);font-weight:800;font-size:16px;
+  letter-spacing:-.4px;color:var(--white);transition:color .3s;}
+.logo-name span{color:var(--gold);}
+
+/* ══════════════════════════════════
+   BOTTOM NAV
+══════════════════════════════════ */
+.bnav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:390px;
+  background:var(--card);border-top:1px solid var(--border);
+  display:none;grid-template-columns:repeat(5,1fr);
+  padding:8px 0 24px;z-index:100;
+  transition:background .3s,border-color .3s;
+}
+.bnav.show{display:grid;}
+.bnav-item{display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;padding:6px 4px;transition:opacity .15s;}
+.bnav-icon{font-size:20px;line-height:1;}
+.bnav-lbl{font-size:9px;font-weight:700;color:var(--muted);
+  letter-spacing:.5px;text-transform:uppercase;transition:color .2s;}
+.bnav-item.active .bnav-lbl{color:var(--gold);}
+
+/* ══════════════════════════════════
+   S1 — LANDING
+══════════════════════════════════ */
+#s1{display:flex;flex-direction:column;min-height:100vh;padding-bottom:44px;}
+.hero{padding:38px 22px 0;flex:1;}
+.live-badge{display:inline-flex;align-items:center;gap:7px;
+  background:var(--gra);border:1px solid var(--grb);
+  border-radius:99px;padding:5px 12px;margin-bottom:24px;}
+.live-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;}
+.live-badge span{font-size:11px;color:var(--green);font-weight:600;}
+.s1-h1{font-family:var(--fh);font-size:46px;font-weight:800;
+  line-height:1.02;letter-spacing:-2px;margin-bottom:20px;color:var(--white);}
+.s1-h1 .hl{color:var(--gold);position:relative;display:inline-block;}
+.s1-h1 .hl::after{content:'';position:absolute;left:0;bottom:2px;
+  width:100%;height:3px;background:var(--gold);opacity:.4;border-radius:2px;}
+.s1-sub{font-size:14px;line-height:1.74;color:var(--muted2);margin-bottom:32px;}
+.s1-sub strong{color:var(--white);font-weight:600;}
+.cta-note{text-align:center;font-size:11px;color:var(--muted);margin-top:10px;}
+.divider{display:flex;align-items:center;gap:11px;padding:28px 22px 0;}
+.div-line{flex:1;height:1px;background:var(--border);}
+.div-txt{font-size:11px;color:var(--muted);white-space:nowrap;}
+.proof-row{display:flex;align-items:center;gap:12px;padding:16px 22px 0;}
+.avatars{display:flex;}
+.av{width:31px;height:31px;border-radius:50%;border:2px solid var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;margin-left:-8px;}
+.av:first-child{margin-left:0;}
+.av1{background:#3B82F6;}.av2{background:#EF4444;}
+.av3{background:#8B5CF6;}.av4{background:#F59E0B;color:#000;}
+.proof-txt strong{display:block;font-size:13px;font-weight:700;color:var(--white);}
+.proof-txt span{font-size:11px;color:var(--muted);}
+.ben-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;padding:16px 22px 0;}
+.ben{background:var(--card);border:1px solid var(--border);border-radius:13px;
+  padding:13px 11px;display:flex;flex-direction:column;gap:7px;
+  transition:background .3s,border-color .3s;}
+.ben-i{font-size:20px;}.ben-t{font-size:11px;font-weight:600;color:var(--muted2);line-height:1.35;}
+
+/* ══════════════════════════════════
+   S2 — ONBOARDING
+══════════════════════════════════ */
+#s2{display:flex;flex-direction:column;min-height:100vh;}
+.s2hdr{padding:50px 22px 18px;position:sticky;top:0;
+  background:var(--bg);z-index:9;border-bottom:1px solid var(--border);
+  transition:background .3s,border-color .3s;}
+.s2nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.backbtn{display:flex;align-items:center;gap:5px;background:var(--card);
+  border:1px solid var(--border);color:var(--white);font-family:var(--fb);
+  font-size:12px;font-weight:600;padding:7px 13px;border-radius:10px;cursor:pointer;
+  transition:background .3s,border-color .3s,color .3s;}
+.stepct{font-size:12px;color:var(--muted);transition:color .3s;}
+.stepct b{color:var(--white);}
+.prog-track{height:3px;background:var(--card);border-radius:99px;overflow:hidden;transition:background .3s;}
+.prog-fill{height:100%;background:var(--gold);border-radius:99px;transition:width .4s cubic-bezier(.4,0,.2,1),background .3s;}
+.s2body{flex:1;padding:28px 22px;}
+.qwrap{display:none;flex-direction:column;animation:fu .32s ease both;}
+.qwrap.show{display:flex;}
+.qlabel{font-size:10px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;color:var(--gold);margin-bottom:10px;}
+.qtitle{font-family:var(--fh);font-size:25px;font-weight:800;
+  line-height:1.18;letter-spacing:-.7px;margin-bottom:7px;color:var(--white);}
+.qhint{font-size:12px;color:var(--muted);margin-bottom:22px;line-height:1.55;}
+.opts{display:flex;flex-direction:column;gap:9px;}
+.opt{display:flex;align-items:center;gap:12px;background:var(--card);
+  border:1.5px solid var(--border);border-radius:13px;padding:14px 15px;
+  cursor:pointer;text-align:left;width:100%;font-family:var(--fb);
+  transition:border-color .18s,background .18s;min-height:54px;}
+.opt.sel{border-color:var(--gold);background:var(--ga);}
+.opt-ic{font-size:19px;flex-shrink:0;}
+.opt-tx{flex:1;}
+.opt-lb{display:block;font-size:13px;font-weight:600;color:var(--white);line-height:1.3;}
+.opt-sb{display:block;font-size:11px;color:var(--muted);margin-top:2px;}
+.chk{width:20px;height:20px;border-radius:50%;border:2px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .18s;}
+.opt.sel .chk{background:var(--gold);border-color:var(--gold);}
+.chk-in{width:7px;height:7px;background:var(--bg);border-radius:50%;
+  opacity:0;transform:scale(0);transition:all .18s;}
+.opt.sel .chk-in{opacity:1;transform:scale(1);}
+.s2foot{padding:14px 22px 36px;border-top:1px solid var(--border);transition:border-color .3s;}
+.nextbtn{display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:17px;border:none;border-radius:14px;font-family:var(--fb);
+  font-size:15px;font-weight:700;cursor:pointer;background:var(--green);
+  color:#0A0A0A;opacity:.3;pointer-events:none;transition:opacity .2s;}
+.nextbtn.on{opacity:1;pointer-events:auto;}
+.nextbtn.on:active{transform:scale(.97);}
+
+/* ══════════════════════════════════
+   S3 — SKILL MATCHER
+══════════════════════════════════ */
+#s3{display:flex;flex-direction:column;min-height:100vh;}
+.ai-loading{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:100vh;padding:40px 28px;text-align:center;}
+.orb-wrap{position:relative;width:120px;height:120px;margin-bottom:32px;
+  animation:sc .5s cubic-bezier(.34,1.56,.64,1) .1s both;}
+.orb{width:120px;height:120px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#2A1E00,#130F00);
+  border:1.5px solid var(--gb);
+  display:flex;align-items:center;justify-content:center;font-size:48px;
+  position:relative;overflow:hidden;box-shadow:0 0 60px var(--ga);}
+[data-theme="light"] .orb{background:radial-gradient(circle at 35% 30%,#FFF8E0,#FFF0C0);}
+.orb-scan{position:absolute;left:-10%;right:-10%;height:2px;top:0;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  opacity:.7;animation:scan 2s linear infinite;}
+.orb-ring1{position:absolute;inset:-12px;border-radius:50%;
+  border:1px solid var(--gb);animation:pulse 2.5s ease infinite;}
+.orb-ring2{position:absolute;inset:-24px;border-radius:50%;
+  border:1px solid var(--ga);animation:pulse 2.5s ease .7s infinite;}
+.ai-tag{margin-bottom:16px;opacity:0;animation:fu .5s ease .4s forwards;}
+.ai-h{font-family:var(--fh);font-size:26px;font-weight:800;
+  letter-spacing:-.8px;color:var(--white);margin-bottom:10px;
+  opacity:0;animation:fu .5s ease .5s forwards;}
+.ai-p{font-size:13px;color:var(--muted2);line-height:1.65;margin-bottom:36px;
+  opacity:0;animation:fu .5s ease .6s forwards;}
+.ai-p em{color:var(--white);font-style:normal;font-weight:600;}
+.load-track{width:100%;background:var(--card);border-radius:99px;height:5px;
+  overflow:hidden;margin-bottom:10px;opacity:0;animation:fu .5s ease .7s forwards;}
+.load-bar{height:100%;background:linear-gradient(90deg,var(--gold),var(--amber),var(--green));
+  border-radius:99px;width:0;transition:width .7s ease;}
+.load-lbl{font-size:11px;color:var(--muted);opacity:0;animation:fu .5s ease .8s forwards;transition:opacity .3s;}
+.thinking{display:flex;gap:5px;justify-content:center;margin-top:20px;
+  opacity:0;animation:fu .5s ease .9s forwards;}
+.tdot{width:7px;height:7px;background:var(--gold);border-radius:50%;opacity:.4;}
+.tdot:nth-child(1){animation:dotB 1.2s ease 0s infinite;}
+.tdot:nth-child(2){animation:dotB 1.2s ease .2s infinite;}
+.tdot:nth-child(3){animation:dotB 1.2s ease .4s infinite;}
+.ai-error{display:none;flex-direction:column;align-items:center;
+  justify-content:center;min-height:100vh;padding:40px 28px;text-align:center;}
+.ai-error.show{display:flex;}
+.err-icon{font-size:48px;margin-bottom:20px;}
+.err-h{font-family:var(--fh);font-size:22px;font-weight:800;color:var(--white);margin-bottom:8px;}
+.err-p{font-size:13px;color:var(--muted2);line-height:1.6;margin-bottom:28px;}
+.err-retry{background:var(--card);border:1px solid var(--border2);color:var(--white);
+  border-radius:12px;padding:13px 24px;font-family:var(--fb);font-size:14px;font-weight:700;cursor:pointer;}
+.s3results{display:none;flex-direction:column;padding-bottom:40px;}
+.s3results.show{display:flex;}
+.s3hdr{padding:52px 22px 28px;}
+.s3eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
+.s3line{flex:1;height:1px;background:var(--border);}
+.s3h{font-family:var(--fh);font-size:30px;font-weight:800;
+  line-height:1.1;letter-spacing:-1px;color:var(--white);margin-bottom:8px;}
+.s3h span{color:var(--gold);}
+.s3sub{font-size:13px;color:var(--muted2);line-height:1.6;}
+.scard{margin:0 22px 14px;border-radius:20px;overflow:hidden;cursor:pointer;
+  border:1.5px solid var(--border);background:var(--card);
+  transition:border-color .2s,transform .15s,background .3s;
+  opacity:0;animation:cardIn .5s ease forwards;}
+.scard:nth-child(1){animation-delay:.05s;}
+.scard:nth-child(2){animation-delay:.18s;}
+.scard:nth-child(3){animation-delay:.31s;}
+.scard:active{transform:scale(.985);}
+.scard.best{border-color:var(--gold);}
+.sc-stripe{height:3px;}
+.stripe-gold{background:linear-gradient(90deg,var(--gold),var(--amber));}
+.stripe-blue{background:linear-gradient(90deg,var(--blue),#60A5FA);}
+.stripe-purple{background:linear-gradient(90deg,var(--purple),#C084FC);}
+.sc-top{padding:18px 18px 0;}
+.sc-ribbon{display:flex;align-items:center;margin-bottom:14px;}
+.sc-body{display:flex;align-items:flex-start;gap:13px;margin-bottom:16px;}
+.sc-ico{width:50px;height:50px;border-radius:13px;
+  display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.ico-gold{background:var(--ga);}.ico-blue{background:var(--bla);}.ico-purple{background:var(--pua);}
+.sc-txt{flex:1;}
+.sc-name{font-family:var(--fh);font-size:19px;font-weight:800;
+  letter-spacing:-.5px;color:var(--white);margin-bottom:5px;}
+.sc-why{font-size:12px;color:var(--muted2);line-height:1.6;}
+.sc-ring-wrap{flex-shrink:0;}
+.ring-svg{width:52px;height:52px;}
+.ring-track{fill:none;stroke:var(--border);stroke-width:5;}
+.ring-prog{fill:none;stroke-width:5;stroke-linecap:round;stroke-dasharray:132;
+  transform:rotate(-90deg);transform-origin:center;}
+.ring-label{position:relative;width:52px;height:52px;margin-top:-52px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.ring-val{font-family:var(--fh);font-size:13px;font-weight:800;color:var(--white);}
+.ring-lbl-txt{font-size:8px;color:var(--muted);}
+.sc-stats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--border);}
+.sc-stat{padding:11px 10px;text-align:center;}
+.sc-stat:not(:last-child){border-right:1px solid var(--border);}
+.sc-sv{display:block;font-size:12px;font-weight:700;color:var(--white);margin-bottom:2px;}
+.sc-sl{display:block;font-size:10px;color:var(--muted);}
+.sc-cta{padding:14px 18px 18px;}
+
+/* ══════════════════════════════════
+   S4 — 90-DAY ROADMAP
+══════════════════════════════════ */
+#s4{display:flex;flex-direction:column;min-height:100vh;padding-bottom:90px;}
+.rm-loading{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:100vh;padding:40px 28px;text-align:center;}
+.rm-spinner{width:48px;height:48px;border:3px solid var(--border);
+  border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:24px;}
+.rm-h{font-family:var(--fh);font-size:24px;font-weight:800;
+  letter-spacing:-.7px;color:var(--white);margin-bottom:8px;}
+.rm-p{font-size:13px;color:var(--muted2);line-height:1.6;}
+.rm-content{display:none;flex-direction:column;}
+.rm-content.show{display:flex;}
+.page-hdr{padding:52px 22px 0;}
+.ph-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;}
+.ph-eyebrow{font-size:10px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;color:var(--gold);margin-bottom:8px;}
+.ph-title{font-family:var(--fh);font-size:28px;font-weight:800;
+  letter-spacing:-.9px;color:var(--white);line-height:1.1;margin-bottom:4px;}
+.ph-title span{color:var(--gold);}
+.ph-sub{font-size:13px;color:var(--muted2);}
+.ph-back{width:38px;height:38px;background:var(--card);border:1px solid var(--border);
+  border-radius:10px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:15px;color:var(--white);font-family:var(--fb);font-weight:600;
+  transition:background .3s,border-color .3s;}
+.skill-pill{display:inline-flex;align-items:center;gap:8px;
+  background:var(--ga);border:1px solid var(--gb);
+  border-radius:99px;padding:7px 14px;margin:0 22px 20px;}
+.skill-pill-txt{font-size:12px;color:var(--gold);font-weight:700;}
+.stats-3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;padding:0 22px;margin-bottom:18px;}
+.stat-c{background:var(--card);border:1px solid var(--border);border-radius:13px;
+  padding:13px 12px;text-align:center;transition:background .3s,border-color .3s;}
+.stat-v{font-family:var(--fh);font-size:22px;font-weight:800;color:var(--white);margin-bottom:2px;}
+.stat-l{font-size:10px;color:var(--muted);font-weight:600;}
+.prog-bar-card{background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:15px 16px;margin:0 22px 20px;
+  transition:background .3s,border-color .3s;}
+.pbc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.pbc-lbl{font-size:13px;font-weight:700;color:var(--white);}
+.pbc-pct{font-family:var(--fh);font-size:16px;font-weight:800;color:var(--gold);}
+.pbc-track{height:6px;background:var(--border);border-radius:99px;overflow:hidden;}
+.pbc-fill{height:100%;--tw:17%;background:linear-gradient(90deg,var(--gold),var(--green));
+  border-radius:99px;width:0;animation:barFill 1.2s ease .5s forwards;}
+.mtabs{display:flex;gap:8px;padding:0 22px;margin-bottom:16px;
+  overflow-x:auto;scrollbar-width:none;}
+.mtabs::-webkit-scrollbar{display:none;}
+.mtab{display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:10px 16px;border-radius:13px;font-size:12px;font-weight:700;
+  cursor:pointer;white-space:nowrap;transition:all .2s;flex-shrink:0;
+  background:var(--card);border:1px solid var(--border);color:var(--muted);}
+.mtab-sub{font-size:10px;font-weight:500;color:var(--muted);}
+.mtab.active{background:var(--gold);color:#0A0A0A;border-color:var(--gold);}
+.mtab.active .mtab-sub{color:#0A0A0A;opacity:.7;}
+.mpane{display:none;padding:0 22px;}
+.mpane.show{display:block;}
+.month-target{background:var(--card);border:1px solid var(--gb);
+  border-radius:16px;padding:16px 18px;margin-bottom:14px;
+  display:flex;align-items:center;gap:14px;
+  transition:background .3s;}
+.mt-ico{font-size:30px;flex-shrink:0;}
+.mt-label{font-size:10px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--gold);margin-bottom:4px;}
+.mt-title{font-family:var(--fh);font-size:16px;font-weight:800;color:var(--white);letter-spacing:-.3px;}
+.mt-sub-txt{font-size:12px;color:var(--muted2);margin-top:2px;}
+.wcard{background:var(--card);border:1.5px solid var(--border);
+  border-radius:16px;margin-bottom:11px;overflow:hidden;
+  transition:border-color .2s,background .3s;}
+.wcard.wc-done{opacity:.62;}
+.wcard.wc-current{border-color:var(--green);}
+.wcard.wc-target{border-color:var(--gold);}
+.wc-stripe{height:3px;}
+.wcs-gold{background:var(--gold);}.wcs-green{background:var(--green);}
+.wcs-grey{background:var(--border2);}.wcs-none{background:var(--border);}
+.wc-body{padding:14px 16px;}
+.wc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.wc-num{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;}
+.wc-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;}
+.wb-done{background:var(--card2);color:var(--muted);}
+.wb-current{background:var(--gra);color:var(--green);}
+.wb-locked{background:var(--card2);color:var(--muted);}
+.wb-target{background:var(--ga);color:var(--gold);}
+.wc-title{font-family:var(--fh);font-size:16px;font-weight:700;
+  letter-spacing:-.35px;color:var(--white);margin-bottom:6px;line-height:1.25;}
+.wc-desc{font-size:12px;color:var(--muted2);line-height:1.6;margin-bottom:11px;}
+.wc-tags{display:flex;gap:7px;flex-wrap:wrap;}
+.wtag{font-size:10px;font-weight:600;padding:4px 9px;border-radius:99px;
+  background:var(--surf);border:1px solid var(--border);color:var(--muted2);}
+.wc-action{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;}
+.wca-lbl{font-size:12px;color:var(--muted2);}
+.wca-btn{background:var(--green);color:#0A0A0A;border:none;border-radius:10px;
+  padding:9px 16px;font-family:var(--fb);font-size:12px;font-weight:700;cursor:pointer;}
+.wca-btn:active{transform:scale(.96);}
+
+/* ══════════════════════════════════
+   S5 — LEARNING HUB
+══════════════════════════════════ */
+#s5{display:flex;flex-direction:column;min-height:100vh;padding-bottom:90px;}
+.filter-row{display:flex;gap:7px;padding:0 22px 20px;overflow-x:auto;scrollbar-width:none;}
+.filter-row::-webkit-scrollbar{display:none;}
+.ftab{padding:7px 16px;border-radius:10px;font-size:12px;font-weight:700;
+  cursor:pointer;white-space:nowrap;transition:all .18s;
+  background:var(--card);border:1px solid var(--border);color:var(--muted);}
+.ftab.active{background:var(--gold);color:#0A0A0A;border-color:var(--gold);}
+.res-list{padding:0 22px;}
+.res-section-lbl{font-size:10px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:12px;
+  padding-left:10px;border-left:2px solid var(--gold);}
+.res-section{margin-bottom:24px;}
+.res-card{display:flex;align-items:center;gap:12px;background:var(--card);
+  border:1px solid var(--border);border-radius:13px;padding:13px 14px;
+  margin-bottom:9px;cursor:pointer;transition:border-color .18s,background .3s;}
+.res-card:active{border-color:var(--gold);}
+.res-card.hidden{display:none;}
+.res-logo{width:40px;height:40px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.rl-red{background:var(--reda);}.rl-blue{background:var(--bla);}
+.rl-green{background:var(--gra);}.rl-orange{background:rgba(245,158,11,.12);}
+.rl-purple{background:var(--pua);}
+.res-info{flex:1;}
+.res-title{font-size:13px;font-weight:700;color:var(--white);margin-bottom:3px;line-height:1.3;}
+.res-meta{font-size:11px;color:var(--muted);}
+.res-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;}
+.res-price{font-size:11px;font-weight:700;padding:3px 8px;border-radius:7px;}
+.rp-free{background:var(--gra);color:var(--green);}
+.rp-paid{background:var(--ga);color:var(--gold);}
+.res-arr{color:var(--muted);font-size:14px;}
+.s5-loading{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:60vh;padding:40px 28px;text-align:center;}
+
+/* ══════════════════════════════════
+   S6 — WEEKLY CHECK-IN
+══════════════════════════════════ */
+#s6{display:flex;flex-direction:column;min-height:100vh;padding-bottom:90px;}
+.ci-body{padding:0 22px;}
+.streak-card{background:linear-gradient(135deg,var(--card),var(--ga));
+  border:1px solid var(--gb);border-radius:16px;padding:18px;
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;
+  transition:background .3s;}
+.streak-num{font-family:var(--fh);font-size:38px;font-weight:800;color:var(--gold);line-height:1;}
+.streak-lbl{font-size:12px;color:var(--muted2);margin-top:2px;}
+.streak-fire{font-size:42px;line-height:1;}
+.task-recap{background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:16px;margin-bottom:20px;transition:background .3s,border-color .3s;}
+.tr-label{font-size:10px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.tr-title{font-family:var(--fh);font-size:16px;font-weight:700;
+  letter-spacing:-.3px;color:var(--white);margin-bottom:5px;}
+.tr-desc{font-size:12px;color:var(--muted2);line-height:1.55;}
+.ci-q{font-family:var(--fh);font-size:20px;font-weight:800;
+  letter-spacing:-.5px;color:var(--white);margin-bottom:16px;}
+.ci-opts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:20px;}
+.ci-opt{padding:16px 12px;background:var(--card);border:1.5px solid var(--border);
+  border-radius:13px;cursor:pointer;text-align:center;font-family:var(--fb);
+  font-size:13px;font-weight:700;transition:all .18s;color:var(--muted2);}
+.ci-opt-yes{color:var(--green);}
+.ci-opt-yes.sel{background:var(--gra);border-color:var(--green);}
+.ci-opt-no{color:var(--red);}
+.ci-opt-no.sel{background:var(--reda);border-color:var(--red);}
+.ci-opt-part{color:var(--gold);grid-column:span 2;}
+.ci-opt-part.sel{background:var(--ga);border-color:var(--gold);}
+.ai-response-card{background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:16px;margin-bottom:16px;display:none;
+  animation:fu .4s ease both;transition:background .3s,border-color .3s;}
+.ai-response-card.show{display:block;}
+.ai-resp-tag{font-size:10px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--green);margin-bottom:8px;}
+.ai-resp-text{font-size:13px;color:var(--muted2);line-height:1.65;}
+.ai-resp-loading{display:flex;gap:4px;align-items:center;padding:8px 0;}
+.next-week-card{background:var(--card);border:1.5px solid var(--green);
+  border-radius:14px;padding:16px;display:none;transition:background .3s;}
+.next-week-card.show{display:block;animation:fu .4s ease both;}
+.nw-label{font-size:10px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--green);margin-bottom:10px;}
+.nw-title{font-family:var(--fh);font-size:16px;font-weight:700;
+  letter-spacing:-.3px;color:var(--white);margin-bottom:5px;}
+.nw-desc{font-size:12px;color:var(--muted2);line-height:1.55;margin-bottom:14px;}
+
+/* ══════════════════════════════════
+   S7 — DASHBOARD
+══════════════════════════════════ */
+#s7{display:flex;flex-direction:column;min-height:100vh;padding-bottom:90px;}
+.dash-body{padding:0 22px;}
+.greeting{margin-bottom:22px;}
+.greet-tag{font-size:10px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.greet-name{font-family:var(--fh);font-size:28px;font-weight:800;
+  letter-spacing:-.8px;line-height:1.15;color:var(--white);}
+.greet-name span{color:var(--gold);}
+.greet-sub{font-size:13px;color:var(--muted2);margin-top:4px;}
+.circ-card{background:var(--card);border:1px solid var(--border);
+  border-radius:18px;padding:22px;margin-bottom:14px;
+  display:flex;align-items:center;gap:18px;
+  transition:background .3s,border-color .3s;}
+.circ-svg-wrap{position:relative;width:90px;height:90px;flex-shrink:0;}
+.circ-svg{width:90px;height:90px;}
+.circ-track{fill:none;stroke:var(--border);stroke-width:8;}
+.circ-prog{fill:none;stroke:var(--gold);stroke-width:8;stroke-linecap:round;
+  stroke-dasharray:220;transform:rotate(-90deg);transform-origin:center;
+  transition:stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1);}
+.circ-inner{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;}
+.circ-val{font-family:var(--fh);font-weight:800;font-size:18px;color:var(--white);}
+.circ-lbl{font-size:8px;color:var(--muted);letter-spacing:.5px;}
+.circ-info-title{font-family:var(--fh);font-size:18px;font-weight:800;
+  letter-spacing:-.4px;color:var(--white);margin-bottom:4px;}
+.circ-info-sub{font-size:12px;color:var(--muted2);line-height:1.5;}
+.dash-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px;}
+.ds-card{background:var(--card);border:1px solid var(--border);border-radius:13px;
+  padding:14px 12px;text-align:center;transition:background .3s,border-color .3s;}
+.ds-val{font-family:var(--fh);font-size:22px;font-weight:800;color:var(--white);margin-bottom:2px;}
+.ds-lbl{font-size:10px;color:var(--muted);font-weight:600;}
+.income-bar-card{background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:16px;margin-bottom:14px;transition:background .3s,border-color .3s;}
+.ib-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.ib-title{font-size:14px;font-weight:700;color:var(--white);}
+.ib-pct{font-family:var(--fh);font-size:18px;font-weight:800;color:var(--gold);}
+.ib-track{background:var(--border);border-radius:99px;height:8px;overflow:hidden;}
+.ib-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--green));
+  border-radius:99px;--tw:32%;width:0;animation:barFill 1.2s ease .6s forwards;}
+.ib-labels{display:flex;justify-content:space-between;margin-top:6px;}
+.ib-lbl{font-size:10px;color:var(--muted);}
+.skills-card{background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:16px;margin-bottom:14px;transition:background .3s,border-color .3s;}
+.skills-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.s-section-lbl{font-size:10px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;color:var(--gold);margin-bottom:0;}
+.activity-card{background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:16px;transition:background .3s,border-color .3s;}
+.act-list{display:flex;flex-direction:column;gap:12px;margin-top:12px;}
+.act-item{display:flex;align-items:flex-start;gap:11px;}
+.act-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.act-text{font-size:13px;color:var(--muted2);flex:1;line-height:1.4;}
+.act-time{font-size:11px;color:var(--muted);}
+
+/* ══════════════════════════════════
+   S8 — PAYWALL
+══════════════════════════════════ */
+#s8{display:flex;flex-direction:column;min-height:100vh;padding-bottom:90px;}
+.pw-body{padding:0 22px;}
+.lock-hero{background:var(--card);border:1px solid var(--gb);
+  border-radius:18px;padding:24px;text-align:center;margin-bottom:20px;
+  transition:background .3s;}
+.lock-icon{font-size:42px;margin-bottom:14px;}
+.lock-title{font-family:var(--fh);font-size:24px;font-weight:800;
+  letter-spacing:-.7px;color:var(--white);margin-bottom:8px;line-height:1.2;}
+.lock-sub{font-size:13px;color:var(--muted2);line-height:1.6;}
+.lock-sub strong{color:var(--white);}
+.locked-list{margin-top:16px;display:flex;flex-direction:column;gap:8px;}
+.locked-item{display:flex;align-items:center;gap:10px;
+  background:var(--surf);border-radius:10px;padding:10px 12px;}
+.li-ico{font-size:16px;}.li-txt{font-size:13px;color:var(--muted2);flex:1;}
+.li-lock{font-size:14px;opacity:.45;margin-left:auto;}
+.plans-label{font-size:10px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
+.plan-card{border-radius:16px;padding:20px;margin-bottom:12px;
+  border:1.5px solid var(--border);background:var(--card);
+  position:relative;cursor:pointer;transition:border-color .18s,background .3s;}
+.plan-card.recommended{border-color:var(--gold);}
+.plan-card:active{transform:scale(.99);}
+.plan-rec-tag{position:absolute;top:-1px;right:16px;background:var(--gold);
+  color:#0A0A0A;font-size:10px;font-weight:800;letter-spacing:1px;
+  padding:4px 10px;border-radius:0 0 8px 8px;text-transform:uppercase;}
+.plan-name{font-family:var(--fh);font-size:18px;font-weight:800;
+  letter-spacing:-.4px;color:var(--white);margin-bottom:4px;}
+.plan-price{display:flex;align-items:baseline;gap:4px;margin-bottom:12px;}
+.plan-amt{font-family:var(--fh);font-size:32px;font-weight:800;color:var(--gold);}
+.plan-period{font-size:13px;color:var(--muted);}
+.plan-original{font-size:12px;color:var(--muted);text-decoration:line-through;margin-left:6px;}
+.plan-features{display:flex;flex-direction:column;gap:8px;}
+.pf{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--muted2);}
+.pf-check{color:var(--green);font-size:14px;}
+.plan-btn{margin-top:16px;}
+.guarantee{display:flex;align-items:center;gap:10px;
+  background:var(--gra);border:1px solid var(--grb);
+  border-radius:12px;padding:13px 16px;margin-bottom:20px;}
+.guar-icon{font-size:22px;flex-shrink:0;}
+.guar-text{font-size:12px;color:var(--muted2);line-height:1.5;}
+.guar-text strong{color:var(--white);}
+
+/* ══════════════════════════════════
+   TOAST
+══════════════════════════════════ */
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:var(--card2);border:1px solid var(--border2);border-radius:12px;
+  padding:11px 20px;font-size:13px;font-weight:600;color:var(--white);
+  opacity:0;transition:all .3s;pointer-events:none;z-index:999;
+  white-space:nowrap;box-shadow:0 8px 32px var(--shadow);}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ════════════════ S1: LANDING ════════════════ -->
+<div class="scr active" id="s1">
+  <div class="topbar a1">
+    <div class="logo">
+      <div class="logo-gem">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L4 7v10l8 5 8-5V7L12 2z" stroke="#0A0A0A" stroke-width="2.2" stroke-linejoin="round"/>
+          <path d="M12 12l4-2.5M12 12l-4-2.5M12 12v5" stroke="#0A0A0A" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="logo-name">Path<span>Forge</span></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="chip chip-gold">Beta</span>
+      <div class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">
+        <div class="toggle-thumb" id="toggle-thumb">
+          <span id="toggle-icon">🌙</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hero">
+    <div class="live-badge a2"><span class="live-dot"></span><span>AI-Powered Career Coaching</span></div>
+    <h1 class="s1-h1 a3">After school,<br>then <span class="hl">what?</span></h1>
+    <p class="s1-sub a4">Nobody sits you down and says what to do next. <strong>PathForge does.</strong> Tell us where you are — we map exactly what to learn, in what order, to start earning within 90 days. Personalised to <strong>your specific background.</strong></p>
+    <div class="a5">
+      <button class="btn btn-gold" onclick="go('s2')">Build My Free Roadmap &nbsp;→</button>
+      <p class="cta-note">No sign-up &nbsp;·&nbsp; Free to start &nbsp;·&nbsp; 2 minutes</p>
+    </div>
+  </div>
+  <div class="divider a5"><div class="div-line"></div><span class="div-txt">Trusted by Nigerian graduates</span><div class="div-line"></div></div>
+  <div class="proof-row a6">
+    <div class="avatars">
+      <div class="av av1">A</div><div class="av av2">C</div><div class="av av3">E</div><div class="av av4">O</div>
+    </div>
+    <div class="proof-txt">
+      <strong>32 graduates already surveyed</strong>
+      <span>All said they needed exactly this</span>
+    </div>
+  </div>
+  <div class="ben-grid a7">
+    <div class="ben"><span class="ben-i">🎯</span><span class="ben-t">Skill matched to you specifically</span></div>
+    <div class="ben"><span class="ben-i">🗺️</span><span class="ben-t">90-day step-by-step plan</span></div>
+    <div class="ben"><span class="ben-i">📱</span><span class="ben-t">Phone only. No laptop needed</span></div>
+  </div>
+</div>
+
+<!-- ════════════════ S2: ONBOARDING ════════════════ -->
+<div class="scr go-r" id="s2">
+  <div class="s2hdr">
+    <div class="s2nav">
+      <button class="backbtn" onclick="go('s1')">← Back</button>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="stepct">Step <b id="snum">1</b> of 5</span>
+        <div class="theme-toggle" onclick="toggleTheme()"><div class="toggle-thumb"><span id="toggle-icon2">🌙</span></div></div>
+      </div>
+    </div>
+    <div class="prog-track"><div class="prog-fill" id="pfill" style="width:20%"></div></div>
+  </div>
+  <div class="s2body">
+    <div class="qwrap show" id="q1">
+      <p class="qlabel">About You</p><h2 class="qtitle">What's your highest qualification?</h2><p class="qhint">No wrong answer. We meet you exactly where you are.</p>
+      <div class="opts">
+        <button class="opt" onclick="pick(this,'q1')"><span class="opt-ic">🏫</span><span class="opt-tx"><span class="opt-lb">Still in school</span><span class="opt-sb">Preparing ahead of time</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q1')"><span class="opt-ic">📄</span><span class="opt-tx"><span class="opt-lb">OND</span><span class="opt-sb">Ordinary National Diploma</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q1')"><span class="opt-ic">🎓</span><span class="opt-tx"><span class="opt-lb">HND</span><span class="opt-sb">Higher National Diploma</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q1')"><span class="opt-ic">🎓</span><span class="opt-tx"><span class="opt-lb">BSc / BA / B.Ed</span><span class="opt-sb">University degree</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q1')"><span class="opt-ic">💡</span><span class="opt-tx"><span class="opt-lb">No formal degree</span><span class="opt-sb">But ready to build something real</span></span><span class="chk"><span class="chk-in"></span></span></button>
+      </div>
+    </div>
+    <div class="qwrap" id="q2">
+      <p class="qlabel">Your Background</p><h2 class="qtitle">What field did you study?</h2><p class="qhint">This is the most important question. Your field shapes everything we recommend.</p>
+      <div class="opts">
+        <button class="opt" onclick="pick(this,'q2')"><span class="opt-ic">⚙️</span><span class="opt-tx"><span class="opt-lb">Engineering & Technology</span><span class="opt-sb">Electrical, Civil, Mechanical, Computer…</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q2')"><span class="opt-ic">📊</span><span class="opt-tx"><span class="opt-lb">Business, Finance & Management</span><span class="opt-sb">Accounting, Marketing, Economics…</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q2')"><span class="opt-ic">🔬</span><span class="opt-tx"><span class="opt-lb">Sciences</span><span class="opt-sb">Biology, Chemistry, Physics, Biochem…</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q2')"><span class="opt-ic">✍️</span><span class="opt-tx"><span class="opt-lb">Arts, Humanities & Social Sciences</span><span class="opt-sb">English, Linguistics, History, Sociology…</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q2')"><span class="opt-ic">📚</span><span class="opt-tx"><span class="opt-lb">Education</span><span class="opt-sb">Teaching, Curriculum, Guidance…</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q2')"><span class="opt-ic">🌐</span><span class="opt-tx"><span class="opt-lb">Other / Not sure</span></span><span class="chk"><span class="chk-in"></span></span></button>
+      </div>
+    </div>
+    <div class="qwrap" id="q3">
+      <p class="qlabel">Right Now</p><h2 class="qtitle">What does your day actually look like?</h2><p class="qhint">Be honest. This is just between you and the AI.</p>
+      <div class="opts">
+        <button class="opt" onclick="pick(this,'q3')"><span class="opt-ic">📱</span><span class="opt-tx"><span class="opt-lb">Scrolling and applying for jobs</span><span class="opt-sb">Getting no responses</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q3')"><span class="opt-ic">🎲</span><span class="opt-tx"><span class="opt-lb">Doing random things to survive</span><span class="opt-sb">No clear direction yet</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q3')"><span class="opt-ic">📖</span><span class="opt-tx"><span class="opt-lb">Learning a skill on my own</span><span class="opt-sb">But it feels scattered and slow</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q3')"><span class="opt-ic">⏳</span><span class="opt-tx"><span class="opt-lb">Waiting and hoping something changes</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q3')"><span class="opt-ic">💼</span><span class="opt-tx"><span class="opt-lb">I have something but it's not what I want</span></span><span class="chk"><span class="chk-in"></span></span></button>
+      </div>
+    </div>
+    <div class="qwrap" id="q4">
+      <p class="qlabel">Your Target</p><h2 class="qtitle">What's your monthly income goal?</h2><p class="qhint">This calibrates how aggressive your 90-day plan needs to be.</p>
+      <div class="opts">
+        <button class="opt" onclick="pick(this,'q4')"><span class="opt-ic">🌱</span><span class="opt-tx"><span class="opt-lb">₦30,000 – ₦50,000</span><span class="opt-sb">Starting out — building the foundation</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q4')"><span class="opt-ic">📈</span><span class="opt-tx"><span class="opt-lb">₦50,000 – ₦100,000</span><span class="opt-sb">Enough to be truly independent</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q4')"><span class="opt-ic">🚀</span><span class="opt-tx"><span class="opt-lb">₦100,000 – ₦200,000</span><span class="opt-sb">Serious income, serious growth</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q4')"><span class="opt-ic">💰</span><span class="opt-tx"><span class="opt-lb">₦200,000 and above</span><span class="opt-sb">I'm aiming high — no limits</span></span><span class="chk"><span class="chk-in"></span></span></button>
+      </div>
+    </div>
+    <div class="qwrap" id="q5">
+      <p class="qlabel">Your Commitment</p><h2 class="qtitle">How many hours a day can you dedicate?</h2><p class="qhint">Be realistic. We build a plan for your real life, not a perfect version of it.</p>
+      <div class="opts">
+        <button class="opt" onclick="pick(this,'q5')"><span class="opt-ic">⏰</span><span class="opt-tx"><span class="opt-lb">Less than 1 hour</span><span class="opt-sb">Life is busy right now</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q5')"><span class="opt-ic">⏱️</span><span class="opt-tx"><span class="opt-lb">1 – 2 hours</span><span class="opt-sb">Consistent and manageable</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q5')"><span class="opt-ic">🔥</span><span class="opt-tx"><span class="opt-lb">3 – 4 hours</span><span class="opt-sb">I'm ready to push hard</span></span><span class="chk"><span class="chk-in"></span></span></button>
+        <button class="opt" onclick="pick(this,'q5')"><span class="opt-ic">⚡</span><span class="opt-tx"><span class="opt-lb">5+ hours</span><span class="opt-sb">Full focus — I need results fast</span></span><span class="chk"><span class="chk-in"></span></span></button>
+      </div>
+    </div>
+  </div>
+  <div class="s2foot"><button class="nextbtn" id="nbtn" onclick="nextQ()">Continue &nbsp;→</button></div>
+</div>
+
+<!-- ════════════════ S3: SKILL MATCHER ════════════════ -->
+<div class="scr go-r" id="s3">
+  <div class="ai-loading" id="s3load">
+    <div class="orb-wrap">
+      <div class="orb">🧠<div class="orb-scan"></div></div>
+      <div class="orb-ring1"></div><div class="orb-ring2"></div>
+    </div>
+    <span class="chip chip-green ai-tag">Analysing Your Profile</span>
+    <h2 class="ai-h">Finding your best<br>skill matches…</h2>
+    <p class="ai-p">Reading your background in <em id="field-echo">your field</em> and matching you with skills that connect to what you already know.</p>
+    <div class="load-track"><div class="load-bar" id="lbar"></div></div>
+    <p class="load-lbl" id="llbl">Reading your profile…</p>
+    <div class="thinking"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>
+  </div>
+  <div class="ai-error" id="s3err">
+    <div class="err-icon">⚠️</div>
+    <h3 class="err-h">Something went wrong</h3>
+    <p class="err-p">Couldn't generate your matches. Please check your connection and try again.</p>
+    <button class="err-retry" onclick="retrySkills()">Try Again →</button>
+  </div>
+  <div class="s3results" id="s3res">
+    <div class="s3hdr">
+      <div class="s3eyebrow">
+        <span class="chip chip-gold">AI Recommendation</span>
+        <div class="s3line"></div>
+        <span style="font-size:12px;color:var(--muted);">3 matches</span>
+      </div>
+      <h2 class="s3h">Your top skill<br><span>matches are ready.</span></h2>
+      <p class="s3sub">Generated specifically for your background. Pick the path that feels right — we'll build your 90-day plan around it.</p>
+    </div>
+    <div id="cards-container"></div>
+  </div>
+</div>
+
+<!-- ════════════════ S4: ROADMAP ════════════════ -->
+<div class="scr go-r" id="s4">
+  <div class="rm-loading" id="s4load">
+    <div class="rm-spinner"></div>
+    <h3 class="rm-h">Building your roadmap…</h3>
+    <p class="rm-p">Writing a 12-week plan personalised to your background and chosen skill. Takes a few seconds.</p>
+  </div>
+  <div class="rm-content" id="s4content">
+    <div class="page-hdr">
+      <div class="ph-top">
+        <div>
+          <div class="ph-eyebrow">Your personalised plan</div>
+          <h2 class="ph-title">90-Day <span>Roadmap</span></h2>
+          <p class="ph-sub">Week by week. Step by step. First income by Day 60.</p>
+        </div>
+        <button class="ph-back" onclick="go('s3')">←</button>
+      </div>
+    </div>
+    <div class="skill-pill"><span id="chosen-icon">🎨</span><span class="skill-pill-txt" id="chosen-label">Path</span></div>
+    <div class="stats-3">
+      <div class="stat-c"><div class="stat-v">2</div><div class="stat-l">Weeks Done</div></div>
+      <div class="stat-c"><div class="stat-v">10</div><div class="stat-l">Weeks Left</div></div>
+      <div class="stat-c"><div class="stat-v" style="color:var(--green)">17%</div><div class="stat-l">Complete</div></div>
+    </div>
+    <div class="prog-bar-card">
+      <div class="pbc-top"><span class="pbc-lbl">Overall Progress</span><span class="pbc-pct">17%</span></div>
+      <div class="pbc-track"><div class="pbc-fill" style="--tw:17%"></div></div>
+    </div>
+    <div class="mtabs" id="rm-mtabs">
+      <div class="mtab active" onclick="switchMonth(0,this)"><span>Month 1</span><span class="mtab-sub" id="m1lbl">Foundation</span></div>
+      <div class="mtab" onclick="switchMonth(1,this)"><span>Month 2</span><span class="mtab-sub" id="m2lbl">Practice</span></div>
+      <div class="mtab" onclick="switchMonth(2,this)"><span>Month 3</span><span class="mtab-sub" id="m3lbl">Income</span></div>
+    </div>
+    <div id="rm-panes"></div>
+    <div style="padding:20px 22px 0;">
+      <button class="btn btn-green" onclick="navTo('s5')">View Learning Resources &nbsp;→</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ S5: LEARNING HUB ════════════════ -->
+<div class="scr go-r" id="s5">
+  <div class="page-hdr">
+    <div class="ph-top">
+      <div>
+        <div class="ph-eyebrow">Curated for you</div>
+        <h2 class="ph-title">Learning <span>Hub</span></h2>
+        <p class="ph-sub" id="learn-sub">Resources for your chosen skill</p>
+      </div>
+    </div>
+  </div>
+  <div class="filter-row">
+    <div class="ftab active" onclick="filterRes('all',this)">All</div>
+    <div class="ftab" onclick="filterRes('free',this)">Free Only</div>
+    <div class="ftab" onclick="filterRes('paid',this)">Paid Courses</div>
+    <div class="ftab" onclick="filterRes('tool',this)">Tools</div>
+  </div>
+  <div class="s5-loading" id="s5load">
+    <div class="rm-spinner"></div>
+    <h3 class="rm-h" style="margin-bottom:8px;">Building your resource list…</h3>
+    <p class="rm-p">Finding the best free and paid resources matched to your field and skill.</p>
+  </div>
+  <div class="res-list" id="res-list" style="display:none;"></div>
+</div>
+
+<!-- ════════════════ S6: CHECK-IN ════════════════ -->
+<div class="scr go-r" id="s6">
+  <div class="page-hdr">
+    <div class="ph-top">
+      <div>
+        <div class="ph-eyebrow">Keep the momentum</div>
+        <h2 class="ph-title">Weekly <span>Check-In</span></h2>
+        <p class="ph-sub">Week 3 of 12 · Stay consistent</p>
+      </div>
+    </div>
+  </div>
+  <div class="ci-body">
+    <div class="streak-card">
+      <div><div class="streak-num">2</div><div class="streak-lbl">Week streak 🔥</div></div>
+      <div class="streak-fire">🔥</div>
+    </div>
+    <div class="task-recap">
+      <div class="tr-label">This Week's Task</div>
+      <div class="tr-title" id="ci-task-title">Loading your current task…</div>
+      <div class="tr-desc" id="ci-task-desc">Your task details will appear here.</div>
+    </div>
+    <div class="ci-q">Did you complete this week's task?</div>
+    <div class="ci-opts">
+      <button class="ci-opt ci-opt-yes" onclick="ciAnswer('yes',this)">✅ Yes, I did it</button>
+      <button class="ci-opt ci-opt-no" onclick="ciAnswer('no',this)">❌ No, I didn't</button>
+      <button class="ci-opt ci-opt-part" onclick="ciAnswer('partial',this)">⏳ Partially — still going</button>
+    </div>
+    <div class="ai-response-card" id="ai-resp-card">
+      <div class="ai-resp-tag">PathForge AI</div>
+      <div class="ai-resp-text" id="ai-resp-text">
+        <div class="ai-resp-loading">
+          <div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>
+        </div>
+      </div>
+    </div>
+    <div class="next-week-card" id="next-week">
+      <div class="nw-label">Up Next — Week 4</div>
+      <div class="nw-title" id="nw-title">Loading next task…</div>
+      <div class="nw-desc" id="nw-desc"></div>
+      <button class="btn btn-green btn-sm" onclick="navTo('s5')">View Learning Resources →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ S7: DASHBOARD ════════════════ -->
+<div class="scr go-r" id="s7">
+  <div class="page-hdr">
+    <div class="ph-top">
+      <div>
+        <div class="ph-eyebrow">Your journey</div>
+        <h2 class="ph-title">My <span>Progress</span></h2>
+        <p class="ph-sub">Week 3 of your 90-day plan</p>
+      </div>
+    </div>
+  </div>
+  <div class="dash-body">
+    <div class="greeting a1">
+      <div class="greet-tag">Good going 👋</div>
+      <div class="greet-name">You're <span>on track.</span></div>
+      <div class="greet-sub" id="greet-sub">21 days in. Keep this pace and you hit income by Day 60.</div>
+    </div>
+    <div class="circ-card a2">
+      <div class="circ-svg-wrap">
+        <svg class="circ-svg" viewBox="0 0 100 100">
+          <circle class="circ-track" cx="50" cy="50" r="35"/>
+          <circle class="circ-prog" id="circ-prog" cx="50" cy="50" r="35" stroke-dashoffset="150"/>
+        </svg>
+        <div class="circ-inner">
+          <span class="circ-val">32%</span>
+          <span class="circ-lbl">DONE</span>
+        </div>
+      </div>
+      <div>
+        <div class="circ-info-title">Roadmap Progress</div>
+        <div class="circ-info-sub" id="circ-sub">8 of 36 weekly tasks completed. You're exactly where you should be at Week 3.</div>
+      </div>
+    </div>
+    <div class="dash-stats a3">
+      <div class="ds-card"><div class="ds-val">21</div><div class="ds-lbl">Days Active</div></div>
+      <div class="ds-card"><div class="ds-val">8</div><div class="ds-lbl">Tasks Done</div></div>
+      <div class="ds-card"><div class="ds-val">2🔥</div><div class="ds-lbl">Streak</div></div>
+    </div>
+    <div class="income-bar-card a4">
+      <div class="ib-top">
+        <span class="ib-title">Income Readiness Score</span>
+        <span class="ib-pct">32%</span>
+      </div>
+      <div class="ib-track"><div class="ib-fill" style="--tw:32%"></div></div>
+      <div class="ib-labels">
+        <span class="ib-lbl">Beginner</span>
+        <span class="ib-lbl">→ First Client at 60%</span>
+        <span class="ib-lbl">Pro</span>
+      </div>
+    </div>
+    <div class="skills-card a5">
+      <div class="s-section-lbl">Skills Being Built</div>
+      <div class="skills-tags" id="skills-tags">
+        <span class="chip chip-gold">🎨 Design Basics</span>
+        <span class="chip chip-blue">📐 Typography</span>
+        <span class="chip chip-green">🛠 Canva Pro</span>
+        <span class="chip chip-purple">🔲 Figma</span>
+      </div>
+    </div>
+    <div class="activity-card a6">
+      <div class="s-section-lbl">Recent Activity</div>
+      <div class="act-list" id="act-list">
+        <div class="act-item"><div class="act-dot" style="background:var(--green)"></div><div class="act-text">Completed Week 2 task</div><div class="act-time">3 days ago</div></div>
+        <div class="act-item"><div class="act-dot" style="background:var(--gold)"></div><div class="act-text">Watched 3h of course content</div><div class="act-time">5 days ago</div></div>
+        <div class="act-item"><div class="act-dot" style="background:var(--blue)"></div><div class="act-text">Completed Week 1 task</div><div class="act-time">1 week ago</div></div>
+        <div class="act-item"><div class="act-dot" style="background:var(--purple)"></div><div class="act-text">Joined PathForge — Roadmap generated</div><div class="act-time">3 weeks ago</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ S8: PAYWALL ════════════════ -->
+<div class="scr go-r" id="s8">
+  <div class="page-hdr">
+    <div class="ph-top">
+      <div>
+        <div class="ph-eyebrow">Free trial ended</div>
+        <h2 class="ph-title">Unlock <span>Full Access</span></h2>
+        <p class="ph-sub">Keep your momentum going</p>
+      </div>
+    </div>
+  </div>
+  <div class="pw-body">
+    <div class="lock-hero">
+      <div class="lock-icon">🔐</div>
+      <div class="lock-title">You've seen what's possible.<br>Now unlock it all.</div>
+      <div class="lock-sub">Your 14-day free trial gave you your roadmap and the first 2 weeks. <strong>Subscribe now to keep your 90-day plan moving.</strong> Stop here and Week 3 locks.</div>
+      <div class="locked-list">
+        <div class="locked-item"><span class="li-ico">🗺️</span><span class="li-txt">Full 90-day roadmap (Weeks 3–12)</span><span class="li-lock">🔒</span></div>
+        <div class="locked-item"><span class="li-ico">📚</span><span class="li-txt">All learning resources & course links</span><span class="li-lock">🔒</span></div>
+        <div class="locked-item"><span class="li-ico">✅</span><span class="li-txt">Weekly AI check-ins & accountability</span><span class="li-lock">🔒</span></div>
+        <div class="locked-item"><span class="li-ico">📄</span><span class="li-txt">CV review + Portfolio feedback</span><span class="li-lock">🔒</span></div>
+        <div class="locked-item"><span class="li-ico">🤖</span><span class="li-txt">Unlimited AI career Q&A</span><span class="li-lock">🔒</span></div>
+      </div>
+    </div>
+    <p class="plans-label">Choose Your Plan</p>
+    <div class="plan-card recommended">
+      <div class="plan-rec-tag">Most Popular</div>
+      <div class="plan-name">Full Coaching</div>
+      <div class="plan-price"><span class="plan-amt">₦1,500</span><span class="plan-period">/month</span></div>
+      <div class="plan-features">
+        <div class="pf"><span class="pf-check">✓</span>Full 90-day personalised roadmap</div>
+        <div class="pf"><span class="pf-check">✓</span>Weekly AI check-in & accountability</div>
+        <div class="pf"><span class="pf-check">✓</span>All curated learning resources</div>
+        <div class="pf"><span class="pf-check">✓</span>Progress & income readiness tracker</div>
+        <div class="pf"><span class="pf-check">✓</span>Cancel anytime — no lock-in</div>
+      </div>
+      <div class="plan-btn"><button class="btn btn-gold" onclick="paystackPay('monthly')">Start Full Coaching — ₦1,500/mo →</button></div>
+    </div>
+    <div class="plan-card">
+      <div class="plan-name">Launchpad Pack</div>
+      <div class="plan-price"><span class="plan-amt">₦10,000</span><span class="plan-period">one-time</span><span class="plan-original">₦18,000</span></div>
+      <div class="plan-features">
+        <div class="pf"><span class="pf-check">✓</span>Everything in Full Coaching — forever</div>
+        <div class="pf"><span class="pf-check">✓</span>1-on-1 CV review & rewrite</div>
+        <div class="pf"><span class="pf-check">✓</span>LinkedIn profile optimisation</div>
+        <div class="pf"><span class="pf-check">✓</span>Cover letter template + coaching</div>
+        <div class="pf"><span class="pf-check">✓</span>Portfolio first-client strategy session</div>
+      </div>
+      <div class="plan-btn"><button class="btn btn-outline" onclick="paystackPay('launchpad')">Get Launchpad Pack — ₦10,000 →</button></div>
+    </div>
+    <div class="guarantee">
+      <span class="guar-icon">🛡️</span>
+      <div class="guar-text"><strong>7-Day Money-Back Guarantee.</strong> If PathForge doesn't feel worth it in your first 7 days as a paid user, we'll refund you fully. No questions asked.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ BOTTOM NAV ════════════════ -->
+<div class="bnav" id="bnav">
+  <div class="bnav-item active" id="nb-s4" onclick="navTo('s4')"><span class="bnav-icon">🗺️</span><span class="bnav-lbl">Roadmap</span></div>
+  <div class="bnav-item" id="nb-s5" onclick="navTo('s5')"><span class="bnav-icon">📚</span><span class="bnav-lbl">Learn</span></div>
+  <div class="bnav-item" id="nb-s6" onclick="navTo('s6')"><span class="bnav-icon">✅</span><span class="bnav-lbl">Check-In</span></div>
+  <div class="bnav-item" id="nb-s7" onclick="navTo('s7')"><span class="bnav-icon">📊</span><span class="bnav-lbl">Progress</span></div>
+  <div class="bnav-item" id="nb-s8" onclick="navTo('s8')"><span class="bnav-icon">⭐</span><span class="bnav-lbl">Upgrade</span></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════
+// STATE
+// ══════════════════════════════════
+const S = {
+  cur:'s1', step:1, QN:5,
+  answers:{}, skills:null, chosen:null,
+  roadmap:null, resources:null,
+  loadingSkills:false, loadingRoadmap:false,
+  loadingResources:false, ciAnswered:false,
+  theme:'dark'
+};
+const MAIN = ['s4','s5','s6','s7','s8'];
+const ORDER = ['s1','s2','s3','s4','s5','s6','s7','s8'];
+
+// ══════════════════════════════════
+// THEME TOGGLE
+// ══════════════════════════════════
+function toggleTheme() {
+  S.theme = S.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', S.theme);
+  const isDark = S.theme === 'dark';
+  const icon = isDark ? '🌙' : '☀️';
+  document.querySelectorAll('[id^="toggle-icon"]').forEach(el => el.textContent = icon);
+  showToast(isDark ? 'Dark mode on' : 'Light mode on');
+}
+
+// ══════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════
+function go(target) {
+  if (target === S.cur) return;
+  const c = document.getElementById(S.cur);
+  const t = document.getElementById(target);
+  if (!t) return;
+  const forward = ORDER.indexOf(target) > ORDER.indexOf(S.cur);
+  c.classList.remove('active');
+  c.classList.add(forward ? 'go-l' : 'go-r');
+  t.classList.remove('go-l','go-r','fade-out');
+  t.classList.add('active');
+  t.scrollTop = 0;
+  S.cur = target;
+  const isMain = MAIN.includes(target);
+  document.getElementById('bnav').classList.toggle('show', isMain);
+  if (isMain) updateNav(target);
+}
+
+function navTo(target) {
+  if (target === S.cur) return;
+  const c = document.getElementById(S.cur);
+  const t = document.getElementById(target);
+  if (!t) return;
+  c.classList.remove('active');
+  c.classList.add('fade-out');
+  t.classList.remove('go-l','go-r','fade-out');
+  t.classList.add('active');
+  t.scrollTop = 0;
+  S.cur = target;
+  updateNav(target);
+  if (target === 's5' && !S.resources) generateResources();
+  if (target === 's6') populateCheckIn();
+  if (target === 's7') animateDashboard();
+}
+
+function updateNav(target) {
+  document.querySelectorAll('.bnav-item').forEach(b => b.classList.remove('active'));
+  const nb = document.getElementById('nb-' + target);
+  if (nb) nb.classList.add('active');
+}
+
+// ══════════════════════════════════
+// ONBOARDING
+// ══════════════════════════════════
+function pick(el, qId) {
+  el.closest('.opts').querySelectorAll('.opt').forEach(o => o.classList.remove('sel'));
+  el.classList.add('sel');
+  S.answers[qId] = el.querySelector('.opt-lb').textContent.trim();
+  document.getElementById('nbtn').classList.add('on');
+}
+
+function nextQ() {
+  if (!document.getElementById('nbtn').classList.contains('on')) return;
+  if (S.step < S.QN) {
+    document.getElementById('q'+S.step).classList.remove('show');
+    S.step++;
+    document.getElementById('q'+S.step).classList.add('show');
+    document.getElementById('snum').textContent = S.step;
+    document.getElementById('pfill').style.width = (S.step/S.QN*100)+'%';
+    if (!S.answers['q'+S.step]) document.getElementById('nbtn').classList.remove('on');
+    document.getElementById('s2').scrollTop = 0;
+  } else {
+    document.getElementById('field-echo').textContent = S.answers['q2'] || 'your field';
+    go('s3');
+    if (!S.skills) generateSkills();
+  }
+}
+
+// ══════════════════════════════════
+// API CALL
+// ══════════════════════════════════
+async function callClaude(prompt, maxTokens = 1500) {
+  // Calls our secure Netlify function — API key never exposed to the browser
+  const res = await fetch('/.netlify/functions/claude', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      max_tokens: maxTokens,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if (!res.ok) throw new Error('Function error ' + res.status);
+  const data = await res.json();
+  return data.content.filter(b => b.type === 'text').map(b => b.text).join('').replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+}
+
+// ══════════════════════════════════
+// S3 — SKILL MATCHER
+// ══════════════════════════════════
+const loadMsgs = ['Reading your qualification…','Analysing your field of study…','Checking Nigerian market demand…','Matching skills to your background…','Calculating income timelines…','Ranking your top 3 matches…','Almost done…'];
+let msgIdx=0, barIv=null;
+
+function startBar() {
+  const bar=document.getElementById('lbar'), lbl=document.getElementById('llbl');
+  let pct=0; msgIdx=0;
+  barIv = setInterval(()=>{
+    pct += Math.random()*12+5;
+    if(pct>90) pct=90;
+    bar.style.width=pct+'%';
+    msgIdx++;
+    if(msgIdx<loadMsgs.length){
+      lbl.style.opacity='0';
+      setTimeout(()=>{lbl.textContent=loadMsgs[msgIdx];lbl.style.opacity='1';},250);
+    }
+  },580);
+}
+function finishBar(){clearInterval(barIv);document.getElementById('lbar').style.width='100%';}
+
+async function generateSkills() {
+  if(S.loadingSkills) return;
+  S.loadingSkills=true;
+  document.getElementById('s3load').style.display='flex';
+  document.getElementById('s3err').classList.remove('show');
+  document.getElementById('s3res').classList.remove('show');
+  document.getElementById('cards-container').innerHTML='';
+  startBar();
+
+  const prompt=`You are PathForge, an AI career coach for Nigerian graduates. Generate 3 personalised skill recommendations.
+
+USER PROFILE:
+- Qualification: ${S.answers['q1']||'Not specified'}
+- Field of Study: ${S.answers['q2']||'Not specified'}
+- Current Situation: ${S.answers['q3']||'Not specified'}
+- Monthly Income Goal: ${S.answers['q4']||'Not specified'}
+- Daily Hours Available: ${S.answers['q5']||'Not specified'}
+
+RULES:
+1. The "whyFits" MUST directly mention their specific field of study by name. An Engineering graduate and an English graduate seeing the same skill must read completely different explanations. Be concrete.
+2. Rank by matchPct descending. First=gold colorScheme, second=blue, third=purple.
+3. Use realistic Nigerian freelance market rates.
+4. Adjust difficulty and timeToIncome based on hours available.
+5. whyFits: max 2-3 sentences. Specific, not generic. Name their field.
+
+Return ONLY valid JSON array, no markdown:
+[{"skill":"Name","icon":"emoji","matchPct":94,"whyFits":"specific explanation naming their field","timeToIncome":"6-8 weeks","monthlyRange":"₦50,000–₦150,000","difficulty":"Beginner","colorScheme":"gold"},{"skill":"Name","icon":"emoji","matchPct":85,"whyFits":"...","timeToIncome":"8-10 weeks","monthlyRange":"₦40,000–₦120,000","difficulty":"Beginner","colorScheme":"blue"},{"skill":"Name","icon":"emoji","matchPct":76,"whyFits":"...","timeToIncome":"10-12 weeks","monthlyRange":"₦60,000–₦200,000","difficulty":"Intermediate","colorScheme":"purple"}]`;
+
+  try {
+    const raw = await callClaude(prompt);
+    S.skills = JSON.parse(raw);
+    finishBar();
+    await delay(400);
+    renderSkillCards(S.skills);
+  } catch(e) {
+    console.error(e);
+    finishBar();
+    document.getElementById('s3load').style.display='none';
+    document.getElementById('s3err').classList.add('show');
+    S.loadingSkills=false;
+  }
+}
+
+function retrySkills(){S.loadingSkills=false;S.skills=null;generateSkills();}
+
+function renderSkillCards(skills) {
+  document.getElementById('s3load').style.display='none';
+  const cont=document.getElementById('cards-container');
+  cont.innerHTML='';
+  skills.forEach((s,i)=>{
+    const offset=132-(132*s.matchPct/100);
+    const isGold=s.colorScheme==='gold';
+    const card=document.createElement('div');
+    card.className='scard'+(isGold?' best':'');
+    card.style.animationDelay=(i*0.13)+'s';
+    card.onclick=()=>pickSkill(s);
+    const rc=s.colorScheme==='gold'?'var(--gold)':s.colorScheme==='blue'?'var(--blue)':'var(--purple)';
+    card.innerHTML=`
+      <div class="sc-stripe stripe-${s.colorScheme}"></div>
+      <div class="sc-top">
+        <div class="sc-ribbon">
+          <span class="chip chip-${s.colorScheme}">${isGold?'⭐ Best Match':i===1?'📌 Strong Match':'✦ Good Match'}</span>
+        </div>
+        <div class="sc-body">
+          <div class="sc-ico ico-${s.colorScheme}">${s.icon}</div>
+          <div class="sc-txt">
+            <div class="sc-name">${s.skill}</div>
+            <div class="sc-why">${s.whyFits}</div>
+          </div>
+          <div class="sc-ring-wrap">
+            <svg class="ring-svg" viewBox="0 0 52 52">
+              <circle class="ring-track" cx="26" cy="26" r="21"/>
+              <circle class="ring-prog" cx="26" cy="26" r="21" stroke="${rc}" stroke-dashoffset="${offset}"/>
+            </svg>
+            <div class="ring-label">
+              <span class="ring-val" style="color:${rc}">${s.matchPct}%</span>
+              <span class="ring-lbl-txt">match</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sc-stats">
+        <div class="sc-stat"><span class="sc-sv">${s.timeToIncome}</span><span class="sc-sl">First Income</span></div>
+        <div class="sc-stat"><span class="sc-sv">${s.monthlyRange}</span><span class="sc-sl">Monthly Range</span></div>
+        <div class="sc-stat"><span class="sc-sv">${s.difficulty}</span><span class="sc-sl">Difficulty</span></div>
+      </div>
+      <div class="sc-cta">
+        <button class="btn btn-${isGold?'gold':'outline'} btn-sm" style="width:100%">Choose ${s.skill} →</button>
+      </div>`;
+    cont.appendChild(card);
+  });
+  document.getElementById('s3res').classList.add('show');
+}
+
+// ══════════════════════════════════
+// S4 — ROADMAP
+// ══════════════════════════════════
+async function pickSkill(skill) {
+  S.chosen=skill;
+  document.getElementById('chosen-icon').textContent=skill.icon;
+  document.getElementById('chosen-label').textContent=skill.skill+' Path';
+  document.getElementById('learn-sub').textContent=skill.skill+' resources, matched to your background';
+  go('s4');
+  document.getElementById('bnav').classList.add('show');
+  updateNav('s4');
+  if(!S.roadmap){ 
+    document.getElementById('s4load').style.display='flex';
+    document.getElementById('s4content').classList.remove('show');
+    await generateRoadmap(skill);
+  }
+}
+
+async function generateRoadmap(skill) {
+  if(S.loadingRoadmap) return;
+  S.loadingRoadmap=true;
+  const prompt=`You are PathForge, an AI career coach for Nigerian graduates. Generate a highly personalised 12-week roadmap.
+
+USER PROFILE:
+- Qualification: ${S.answers['q1']||'Not specified'}
+- Field of Study: ${S.answers['q2']||'Not specified'}
+- Situation: ${S.answers['q3']||'Not specified'}
+- Income Goal: ${S.answers['q4']||'Not specified'}
+- Daily Hours: ${S.answers['q5']||'Not specified'}
+- Chosen Skill: ${skill.skill}
+
+RULES:
+1. Every week description must feel written FOR THIS PERSON. Reference their field of study naturally. An Engineering student's roadmap for the same skill reads completely differently from an English student's.
+2. Adjust pace to their daily hours available.
+3. Weeks 1-2: status "done". Week 3: status "current" with hasAction:true. Weeks 4-11: status "locked". Week 12: status "target".
+4. Keep descriptions to 2-3 sentences. Be specific.
+5. Tags: 2-4 per week, short (2-3 words max).
+
+Return ONLY valid JSON, no markdown:
+{"months":[{"subtitle":"Foundation","goalIcon":"🎯","goalTitle":"Title","goalSub":"Short sub","weeks":[{"num":1,"status":"done","title":"Week title","desc":"2-3 sentences referencing their background","tags":["tag1","tag2"],"hasAction":false},{"num":2,"status":"done","title":"Title","desc":"Description","tags":["tag1","tag2"],"hasAction":false},{"num":3,"status":"current","title":"Title","desc":"Description","tags":["tag1","tag2"],"hasAction":true},{"num":4,"status":"locked","title":"Title","desc":"Description","tags":["tag1","tag2"],"hasAction":false}]},{"subtitle":"Build Real Work","goalIcon":"🛠️","goalTitle":"Title","goalSub":"Sub","weeks":[{"num":5,"status":"locked","title":"...","desc":"...","tags":["..."],"hasAction":false},{"num":6,"status":"locked","title":"...","desc":"...","tags":["..."],"hasAction":false},{"num":7,"status":"locked","title":"...","desc":"...","tags":["..."],"hasAction":false},{"num":8,"status":"locked","title":"...","desc":"...","tags":["..."],"hasAction":false}]},{"subtitle":"First Income","goalIcon":"💰","goalTitle":"Title","goalSub":"Sub","weeks":[{"num":9,"status":"locked","title":"...","desc":"...","tags":["..."],"hasAction":false},{"num":10,"status":"locked","title":"...","desc":"...","tags":["..."],"hasAction":false},{"num":11,"status":"locked","title":"...","desc":"...","tags":["..."],"hasAction":false},{"num":12,"status":"target","title":"First Income — Achieved ✅","desc":"Description of reaching the goal","tags":["🎉 Goal Reached","🚀 Phase 2"],"hasAction":false}]}]}`;
+
+  try {
+    const raw=await callClaude(prompt,2000);
+    S.roadmap=JSON.parse(raw);
+    renderRoadmap(S.roadmap);
+    populateCheckIn();
+  } catch(e) {
+    console.error(e);
+    showToast('Roadmap error. Please go back and try again.');
+    document.getElementById('s4load').style.display='none';
+    S.loadingRoadmap=false;
+  }
+}
+
+function renderRoadmap(rm) {
+  document.getElementById('s4load').style.display='none';
+  ['m1lbl','m2lbl','m3lbl'].forEach((id,i)=>{
+    document.getElementById(id).textContent=rm.months[i]?.subtitle||'Month '+(i+1);
+  });
+  const container=document.getElementById('rm-panes');
+  container.innerHTML='';
+  rm.months.forEach((month,mi)=>{
+    const pane=document.createElement('div');
+    pane.className='mpane'+(mi===0?' show':'');
+    pane.id='rmp'+mi;
+    let html=`<div class="month-target">
+      <span class="mt-ico">${month.goalIcon}</span>
+      <div><div class="mt-label">Month ${mi+1} Goal</div>
+      <div class="mt-title">${month.goalTitle}</div>
+      <div class="mt-sub-txt">${month.goalSub}</div></div></div>`;
+    month.weeks.forEach(w=>{
+      const sc=w.status==='done'?'wcs-grey':w.status==='current'?'wcs-green':w.status==='target'?'wcs-gold':'wcs-none';
+      const bc=w.status==='done'?'wb-done':w.status==='current'?'wb-current':w.status==='target'?'wb-target':'wb-locked';
+      const bt=w.status==='done'?'✓ Completed':w.status==='current'?'▶ You Are Here':w.status==='target'?'🎯 Target':'🔒 Upcoming';
+      const cc='wcard'+(w.status==='done'?' wc-done':w.status==='current'?' wc-current':w.status==='target'?' wc-target':'');
+      const tags=w.tags.map(t=>`<span class="wtag">${t}</span>`).join('');
+      const action=w.hasAction?`<div class="wc-action"><span class="wca-lbl">Resources ready</span><button class="wca-btn" onclick="navTo('s5')">View →</button></div>`:'';
+      html+=`<div class="${cc}"><div class="wc-stripe ${sc}"></div>
+        <div class="wc-body">
+          <div class="wc-top"><span class="wc-num">Week ${String(w.num).padStart(2,'0')}</span><span class="wc-badge ${bc}">${bt}</span></div>
+          <div class="wc-title">${w.title}</div>
+          <div class="wc-desc">${w.desc}</div>
+          <div class="wc-tags">${tags}</div>${action}
+        </div></div>`;
+    });
+    pane.innerHTML=html;
+    container.appendChild(pane);
+  });
+  document.getElementById('s4content').classList.add('show');
+}
+
+function switchMonth(idx,el) {
+  document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.mpane').forEach(p=>p.classList.remove('show'));
+  el.classList.add('active');
+  const pane=document.getElementById('rmp'+idx);
+  if(pane) pane.classList.add('show');
+  document.getElementById('s4').scrollTop=0;
+}
+
+// ══════════════════════════════════
+// S5 — LEARNING RESOURCES (AI)
+// ══════════════════════════════════
+async function generateResources() {
+  if(S.loadingResources||!S.chosen) return;
+  S.loadingResources=true;
+  document.getElementById('s5load').style.display='flex';
+  document.getElementById('res-list').style.display='none';
+
+  const prompt=`You are PathForge. Generate a personalised learning resource list.
+
+USER PROFILE:
+- Field of Study: ${S.answers['q2']||'Not specified'}
+- Chosen Skill: ${S.chosen.skill}
+
+Generate 8-10 real, specific learning resources. Mix free and paid. Tailor them to their field of study — someone from Engineering background gets different resource framing than someone from Arts background, even for the same skill. Include YouTube channels, online courses, tools, and communities. Use real resource names.
+
+Return ONLY valid JSON, no markdown:
+{"sections":[{"title":"Start Here — Free","resources":[{"title":"Exact resource name","platform":"Platform name","meta":"Channel/Author · Duration or detail","type":"free","logoEmoji":"emoji","category":"free"},...]},{"title":"Go Deeper — Paid","resources":[{"title":"Course name","platform":"Platform","meta":"Author · Duration · Detail","price":"₦X,XXX","type":"paid","logoEmoji":"emoji","category":"paid"}]},{"title":"Essential Tools","resources":[{"title":"Tool name","platform":"Platform","meta":"Free/Freemium · What it does","type":"free","logoEmoji":"emoji","category":"tool"}]}]}`;
+
+  try {
+    const raw=await callClaude(prompt,1200);
+    S.resources=JSON.parse(raw);
+    renderResources(S.resources);
+  } catch(e) {
+    console.error(e);
+    document.getElementById('s5load').innerHTML=`<div class="err-icon">⚠️</div><h3 class="rm-h">Couldn't load resources</h3><p class="rm-p">Please check your connection.</p><button class="err-retry" onclick="S.resources=null;S.loadingResources=false;generateResources()">Retry</button>`;
+  }
+}
+
+function renderResources(data) {
+  document.getElementById('s5load').style.display='none';
+  const list=document.getElementById('res-list');
+  list.style.display='block';
+  list.innerHTML='';
+  data.sections.forEach(sec=>{
+    const el=document.createElement('div');
+    el.className='res-section';
+    let html=`<div class="res-section-lbl">${sec.title}</div>`;
+    sec.resources.forEach(r=>{
+      const priceHtml=r.type==='paid'?`<span class="res-price rp-paid">${r.price||'Paid'}</span>`:`<span class="res-price rp-free">FREE</span>`;
+      html+=`<div class="res-card ${r.category}-res" onclick="showToast('Opening ${r.platform}…')">
+        <div class="res-logo rl-${getLogo(r.type)}">${r.logoEmoji}</div>
+        <div class="res-info"><div class="res-title">${r.title}</div><div class="res-meta">${r.meta}</div></div>
+        <div class="res-right">${priceHtml}<span class="res-arr">↗</span></div>
+      </div>`;
+    });
+    el.innerHTML=html;
+    list.appendChild(el);
+  });
+}
+
+function getLogo(type){return type==='paid'?'orange':type==='tool'?'purple':'blue';}
+
+function filterRes(type,el) {
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.res-card').forEach(c=>{
+    if(type==='all'){c.classList.remove('hidden');return;}
+    c.classList.toggle('hidden',!c.classList.contains(type+'-res'));
+  });
+}
+
+// ══════════════════════════════════
+// S6 — CHECK-IN
+// ══════════════════════════════════
+function populateCheckIn() {
+  if(!S.roadmap) return;
+  const week3=S.roadmap.months[0]?.weeks?.find(w=>w.status==='current');
+  if(week3){
+    document.getElementById('ci-task-title').textContent=week3.title;
+    document.getElementById('ci-task-desc').textContent=week3.desc;
+  }
+  const week4=S.roadmap.months[0]?.weeks?.find(w=>w.num===4);
+  if(week4){
+    document.getElementById('nw-title').textContent=week4.title;
+    document.getElementById('nw-desc').textContent=week4.desc;
+  }
+}
+
+async function ciAnswer(type,el) {
+  if(S.ciAnswered) return;
+  document.querySelectorAll('.ci-opt').forEach(o=>o.classList.remove('sel'));
+  el.classList.add('sel');
+  S.ciAnswered=true;
+
+  const card=document.getElementById('ai-resp-card');
+  card.classList.add('show');
+  const txt=document.getElementById('ai-resp-text');
+  txt.innerHTML='<div class="ai-resp-loading"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>';
+
+  const task=document.getElementById('ci-task-title').textContent;
+  const prompt=`You are PathForge, a warm and direct AI career coach. A Nigerian graduate has just answered their weekly check-in.
+
+Their task this week was: "${task}"
+Their field of study: ${S.answers['q2']||'not specified'}
+Their chosen skill: ${S.chosen?.skill||'not specified'}
+Their answer: ${type==='yes'?'They completed it fully':type==='partial'?'They completed it partially':' They did not complete it'}
+
+Write a short, specific, encouraging response (2-3 sentences max). Be direct and warm. Reference their field or skill naturally. ${type==='no'?'Acknowledge the difficulty without judgment and refocus them on what matters.':type==='partial'?'Celebrate the partial progress and give one specific tip to finish.':'Celebrate the completion genuinely and build momentum for next week.'}
+
+Return ONLY the response text, no JSON, no quotes.`;
+
+  try {
+    const raw=await callClaude(prompt,300);
+    txt.textContent=raw.trim();
+    setTimeout(()=>document.getElementById('next-week').classList.add('show'),600);
+  } catch(e) {
+    txt.textContent=type==='yes'?'That\'s a real W. Keep that energy going into next week.':type==='partial'?'Partial progress still counts — finish it up this week.':'Honest answer. Let\'s reset and keep moving forward.';
+    setTimeout(()=>document.getElementById('next-week').classList.add('show'),600);
+  }
+}
+
+// ══════════════════════════════════
+// S7 — DASHBOARD ANIMATION
+// ══════════════════════════════════
+function animateDashboard() {
+  if(S.chosen){
+    document.getElementById('greet-sub').textContent=
+      `21 days into your ${S.chosen.skill} journey. Keep this pace and you hit income by Day 60.`;
+  }
+  // Animate SVG ring
+  const prog=document.getElementById('circ-prog');
+  if(prog){
+    setTimeout(()=>{prog.style.strokeDashoffset='150';},100);
+  }
+}
+
+// ══════════════════════════════════
+// PAYSTACK PLACEHOLDER
+// ══════════════════════════════════
+function paystackPay(plan) {
+  const msg=plan==='monthly'?'₦1,500/month plan — Paystack integration coming soon!':'₦10,000 Launchpad Pack — Paystack integration coming soon!';
+  showToast(msg);
+}
+
+// ══════════════════════════════════
+// UTILS
+// ══════════════════════════════════
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.style.opacity='1';
+  t.style.transform='translateX(-50%) translateY(0)';
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(-50%) translateY(10px)';},2800);
+}
+</script>
+</body>
+</html>
