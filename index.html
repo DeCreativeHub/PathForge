@@ -1131,9 +1131,8 @@ function nextQ() {
 // ══════════════════════════════════
 // API CALL
 // ══════════════════════════════════
-async function callClaude(prompt, maxTokens = 1500) {
-  // Calls our secure Netlify function — API key never exposed to the browser
-  const res = await fetch('/.netlify/functions/claude', {
+async function callAI(prompt, maxTokens = 1500) {
+  const res = await fetch('/.netlify/functions/deepseek', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -1141,11 +1140,14 @@ async function callClaude(prompt, maxTokens = 1500) {
       messages: [{ role: 'user', content: prompt }]
     })
   });
-  if (!res.ok) throw new Error('Function error ' + res.status);
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Function error ' + res.status);
+  }
   const data = await res.json();
-  return data.content.filter(b => b.type === 'text').map(b => b.text).join('').replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  // Our function only sends back the content string (no markdown cleanup needed)
+  return data.content.trim();
 }
-
 // ══════════════════════════════════
 // S3 — SKILL MATCHER
 // ══════════════════════════════════
